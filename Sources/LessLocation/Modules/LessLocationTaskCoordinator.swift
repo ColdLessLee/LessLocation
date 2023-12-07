@@ -79,22 +79,26 @@ extension LessLocationTaskCoordinator {
 extension LessLocationTaskCoordinator: LessLocationDelegateReflector {
  
     nonisolated func except(_ event: LessLocationDelegateEvent) {
-        Task.detached {
             switch event {
             case .updateLocations(let locations):
-                await self.dispatch(locations: locations)
+                Task.detached {
+                    await self.dispatch(locations: locations)
+                }
             case .didStartMonitoring(let region):
                 print(region)
                 break
             case .didExitMonitoredRegion(let region):
-                await self.dispatch(regionMonitoringEvent: .exits(region: region))
+                Task.detached {
+                    await self.dispatch(regionMonitoringEvent: .exits(region: region))
+                }
             case .didEnterMoitoredRegion(let region):
-                await self.dispatch(regionMonitoringEvent: .enter(region: region))
+                Task.detached {
+                    await self.dispatch(regionMonitoringEvent: .enter(region: region))
+                }
             case .error(let detail):
                 print(detail.localizedDescription)
                 break
             }
-        }
     }
     
 }
