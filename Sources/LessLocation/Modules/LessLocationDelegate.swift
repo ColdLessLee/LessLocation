@@ -13,6 +13,7 @@ enum LessLocationDelegateEvent {
     case didStartMonitoring(region: CLRegion)
     case didExitMonitoredRegion(region: CLRegion)
     case didEnterMoitoredRegion(region: CLRegion)
+    case didChangeLocationAuthsStatus(status: CLAuthorizationStatus)
     case error(detail: Error)
 }
 
@@ -30,11 +31,11 @@ class LessLocationDelegate: NSObject, CLLocationManagerDelegate {
 extension LessLocationDelegate {
     
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        
+        self.reflector?.except(.updateLocations(locations: locations))
     }
     
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        
+        self.reflector?.except(.error(detail: error))
     }
     
 }
@@ -56,6 +57,15 @@ extension LessLocationDelegate {
     
     func locationManager(_ manager: CLLocationManager, monitoringDidFailFor region: CLRegion?, withError error: Error) {
         
+    }
+    
+}
+
+// MARK: - 授权相关
+extension LessLocationDelegate {
+    
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        self.reflector?.except(.didChangeLocationAuthsStatus(status: manager.authorizationStatus))
     }
     
 }

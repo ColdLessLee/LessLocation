@@ -98,6 +98,10 @@ extension LessLocationTaskCoordinator: LessLocationDelegateReflector {
             case .error(let detail):
                 print(detail.localizedDescription)
                 break
+            case .didChangeLocationAuthsStatus(let status):
+                Task.detached {
+                    await self.dispatch(authrizationStatus: .success(status: status))
+                }
             }
     }
     
