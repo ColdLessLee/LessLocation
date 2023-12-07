@@ -14,7 +14,7 @@ public final class LessLocation {
     /// 消费者队列协调者
     private let locationRequstCoordinator = LessLocationTaskCoordinator()
     
-    required init(for locationManager: CLLocationManager? = nil, accuracy: LessLocationAccuracy, allowsBackgroundUpdates: Bool = false) {
+    public required init(for locationManager: CLLocationManager? = nil, accuracy: LessLocationAccuracy, allowsBackgroundUpdates: Bool = false) {
         /* 断言当前的初始化操作是在主线程上进行的 */
         assert(Thread.isMainThread, "it must call on the main-thread, if you think that is a bug, try to post an issue about it")
         
