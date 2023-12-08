@@ -20,6 +20,49 @@ The package leverages Swift's latest async/await syntax for efficient and straig
 - Asynchronous functions using Swift's async/await syntax for fetching geolocation data, setting up geofences, and requesting location permissions.
 - Eliminates the intricacies of delegate and callback management.</sup></sub>
 
+## 使用示例
+- 一次性地理位置请求:
+```swift
+let manager = LessLocation()
+Task {
+    do {
+        // 快速
+        let locations: [CLLocation] = try await manager.requestLocations()
+        // 更精准
+        let highQulityLocations: [CLLocation] = try await manager.requestLocations(isHighLevel: ture)
+    } catch {
+        print(error)
+    }
+}
+```
+- 授权请求
+```swift
+let manager = LessLocation()
+Task {
+    let status = await manager.requestAuthrization(for: .whenInUse)
+}
+```
+- 电子围栏监控
+```swift
+let manager = LessLocation()
+Task {
+    let region = CLRegion()
+    manager.startMonitoring(for: region) { result in
+        switch result {
+            case .success(let event):
+                switch event {
+                    case .enter(let reg):
+                        // do somethings when enter one region...
+                    case .exits(let reg):
+                        // do somethings when exits one region...
+                }
+            case .falure(let error):
+                // 错误处理
+        }
+    }
+}
+```
+
 ## 要求
 确保您的 `info.plist` 文件包含位置服务所需的权限描述，例如：
 - `NSLocationWhenInUseUsageDescription`
