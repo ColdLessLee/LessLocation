@@ -64,7 +64,7 @@ manager.startMonitoring(for: region) { result in
 ```
 
 ## 作者
-🤵 ColdLessLee 
+🤵 ColdLessLee <br>
 📮 leezway@foxmail.com
 
 ## 许可
