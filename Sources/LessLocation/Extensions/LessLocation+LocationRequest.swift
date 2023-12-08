@@ -46,11 +46,18 @@ extension LessLocation {
     
     public func requestLocations(isHighLevel: Bool = false, completion: @escaping LocationRequst) {
         guard isLocationFetchable() else { return completion(.failure(.unreachable)) }
-        locationRequstCoordinator.pushLocationRequest { result in
+        locationRequstCoordinator.pushLocationRequest { [weak self] result in
+            if let self = self {
+                self.locationManager.stopUpdatingLocation()
+            }
             completion(result)
         }
         DispatchQueue.main.async {
-            return isHighLevel ? self.locationManager.requestLocation() : self.locationManager.startUpdatingLocation()
+            if isHighLevel {
+                self.locationManager.requestLocation()
+            } else {
+                self.locationManager.startUpdatingLocation()
+            }
         }
     }
 
