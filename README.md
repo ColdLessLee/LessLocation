@@ -46,22 +46,21 @@ Task {
 - 电子围栏监控
 ```swift
 let manager = LessLocation()
-Task {
-    let region = CLRegion()
-    manager.startMonitoring(for: region) { result in
-        switch result {
-            case .success(let event):
-                switch event {
-                    case .enter(let reg):
-                        // do somethings when enter one region...
-                    case .exits(let reg):
-                        // do somethings when exits one region...
-                }
-            case .falure(let error):
-                // 错误处理
-        }
+let region = CLRegion()
+manager.startMonitoring(for: region) { result in
+    switch result {
+        case .success(let event):
+            switch event {
+                case .enter(let reg):
+                    // do somethings when enter one region...
+                case .exits(let reg):
+                    // do somethings when exits one region...
+            }
+        case .falure(let error):
+                // error handling...
     }
 }
+
 ```
 
 ## 作者
