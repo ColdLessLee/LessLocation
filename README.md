@@ -58,7 +58,7 @@ Task {
                     case .exits(let reg):
                         // do somethings when exits one region...
                 }
-            case .falure(let error):
+            case .falure(let error):
                 // 错误处理
         }
     }
