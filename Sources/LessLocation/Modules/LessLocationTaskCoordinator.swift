@@ -8,52 +8,72 @@
 import Foundation
 import CoreLocation
 
-actor LessLocationTaskCoordinator {
+class LessLocationTaskCoordinator {
     
-    typealias LocationRequst = (_ locations: [CLLocation]) -> Void
-    private var locationRequstQueue: [LocationRequst] = []
+    private let queue = DispatchQueue(label: "com.lesslocation.tasks.coordinator")
+    
+    internal typealias LocationResult = LessLocation.LocationResult
+    internal typealias LocationRequst = LessLocation.LocationRequst
+    private var locationRequst: LocationRequst?
         
-    enum RegionMonitoringEvent {
-        case enter(region: CLRegion)
-        case exits(region: CLRegion)
-    }
-    typealias RegionMonitoringTask = (_ regionEvent: RegionMonitoringEvent) -> Void
-    private var regionMonitoringTasks: [RegionMonitoringTask] = []
+    internal typealias RegionMonitoringEvent = LessLocation.RegionMonitoringEvent
+    internal typealias RegionMonitoringResult = LessLocation.RegionMonitoringResult
+    internal typealias RegionMonitoringTask = LessLocation.RegionMonitoringTask
+    private var regionMonitoringTask: RegionMonitoringTask?
     
-    typealias AuthrizationEvent = LessLocation.AuthrizationEvent
-    typealias AuthrizationRequest = LessLocation.AuthrizationRequest
-    private var authrizationRequest: AuthrizationRequest? = nil
-    
+    /// 引用的请求事件类型别名
+    internal typealias AuthrizationResult = LessLocation.AuthrizationResult
+    /// 引用的请求函数类型别名
+    internal typealias AuthrizationRequest = LessLocation.AuthrizationRequest
+    /// 权限回调实例变量
+    private var authrizationRequest: AuthrizationRequest?
 }
 
 // MARK: - Locations
 extension LessLocationTaskCoordinator {
     
-    public func push(locationRequst: @escaping LocationRequst) {
-        self.locationRequstQueue.append(locationRequst)
-    }
-    
-    public func dispatch(locations: [CLLocation]) async {
-        for locationRequst in self.locationRequstQueue {
-            locationRequst(locations)
+    public func pushLocationRequest(_ request: @escaping LocationRequst) {
+        queue.async { [weak self] in
+            guard let previousRequest = self?.locationRequst else {
+                self?.locationRequst = request
+                return
+            }
+            self?.locationRequst = { locations in
+                previousRequest(locations)
+                request(locations)
+            }
         }
-        locationRequstQueue.removeAll()
     }
     
+    public func dispatch(locationsResult result: LocationResult) {
+        queue.async { [weak self] in
+            self?.locationRequst?(result)
+            self?.locationRequst = nil
+        }
+    }
+   
 }
 
 // MARK: - RegionMonitoring
 extension LessLocationTaskCoordinator {
     
-    public func pushRegionMonitoringTask(_ regionMonitoringTask: @escaping RegionMonitoringTask) {
-        self.regionMonitoringTasks.append(regionMonitoringTask)
+    public func pushRegionMonitoringTask(_ task: @escaping RegionMonitoringTask) {
+        queue.async { [weak self] in
+            guard let previousTask = self?.regionMonitoringTask else {
+                self?.regionMonitoringTask = task
+                return
+            }
+            self?.regionMonitoringTask = { event in
+                previousTask(event)
+                task(event)
+            }
+        }
     }
     
-    public func dispatch(regionMonitoringEvent: RegionMonitoringEvent) async {
-        for regionMonitoringTask in self.regionMonitoringTasks {
-            regionMonitoringTask(regionMonitoringEvent)
+    public func dispatch(regionMonitoringResult result: RegionMonitoringResult) {
+        queue.async { [weak self] in
+            self?.regionMonitoringTask?(result)
         }
-        regionMonitoringTasks.removeAll()
     }
     
 }
@@ -62,44 +82,23 @@ extension LessLocationTaskCoordinator {
 extension LessLocationTaskCoordinator {
     
     public func setAuthrizationRequest(_ request: @escaping AuthrizationRequest) {
-        self.authrizationRequest = request
-    }
-    
-    public func dispatch(authrizationStatus status: AuthrizationEvent) async {
-        self.authrizationRequest?(status)
-        self.authrizationRequest = nil
-    }
-    
-}
-
-// MARK: - LessLocationDelegate
-extension LessLocationTaskCoordinator: LessLocationDelegateReflector {
- 
-    nonisolated func except(_ event: LessLocationDelegateEvent) {
-            switch event {
-            case .updateLocations(let locations):
-                Task.detached {
-                    await self.dispatch(locations: locations)
-                }
-            case .didStartMonitoring(let region):
-                print(region)
-                break
-            case .didExitMonitoredRegion(let region):
-                Task.detached {
-                    await self.dispatch(regionMonitoringEvent: .exits(region: region))
-                }
-            case .didEnterMoitoredRegion(let region):
-                Task.detached {
-                    await self.dispatch(regionMonitoringEvent: .enter(region: region))
-                }
-            case .error(let detail):
-                print(detail.localizedDescription)
-                break
-            case .didChangeLocationAuthsStatus(let status):
-                Task.detached {
-                    await self.dispatch(authrizationStatus: .success(status: status))
-                }
+        queue.async { [weak self] in
+            guard let previousRequest = self?.authrizationRequest else {
+                self?.authrizationRequest = request
+                return
             }
+            self?.authrizationRequest = { event in
+                previousRequest(event)
+                request(event)
+            }
+        }
+    }
+    
+    public func dispatch(authrizationStatus status: AuthrizationResult) {
+        queue.async {
+            self.authrizationRequest?(status)
+            self.authrizationRequest = nil
+        }
     }
     
 }

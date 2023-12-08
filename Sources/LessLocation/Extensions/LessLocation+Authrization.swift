@@ -16,10 +16,7 @@ extension LessLocation {
         case whenInUse
     }
     
-    public enum AuthrizationEvent {
-        case success(status: CLAuthorizationStatus)
-        case failure(detail: AuthrizationError)
-    }
+    public typealias AuthrizationResult = Result<CLAuthorizationStatus, AuthrizationError>
     
     public enum AuthrizationError: Error {
         case missContext
@@ -27,7 +24,7 @@ extension LessLocation {
         case others(error: Error)
     }
     
-    public typealias AuthrizationRequest = (_ status: AuthrizationEvent) -> Void
+    public typealias AuthrizationRequest = (_ status: AuthrizationResult) -> Void
    
 }
 
@@ -65,29 +62,17 @@ extension LessLocation {
         // 必须是未决定才能往下走, 否则直接抛出错误内容
         guard locationManager.authorizationStatus == .notDetermined else {
             let status = locationManager.authorizationStatus
-            return completion(.failure(detail: .unrequestable(status)))
+            return completion(.failure(.unrequestable(status)))
         }
-        // 创建信号量, 禁止方法重入
-        let semaphore = DispatchSemaphore(value: 1)
-        semaphore.wait()
-        // 异步任务
-        Task.detached { [weak self, semaphore, completion] in
-            guard let self = self else {
-                completion(.failure(detail: .missContext))
-                return
-            }
-            await self.locationRequstCoordinator.setAuthrizationRequest { [semaphore, completion] result in
-                completion(result)
-                semaphore.signal()
-            }
-            // 在主线程发起请求
-             await MainActor.run { [self] in
-                switch target {
-                case .always:
-                   return self.locationManager.requestAlwaysAuthorization()
-                case .whenInUse:
-                   return self.locationManager.requestWhenInUseAuthorization()
-                }
+        locationRequstCoordinator.setAuthrizationRequest { [completion] result in
+            completion(result)
+        }
+        DispatchQueue.main.async {
+            switch target {
+            case .always:
+               return self.locationManager.requestAlwaysAuthorization()
+            case .whenInUse:
+               return self.locationManager.requestWhenInUseAuthorization()
             }
         }
     }

@@ -26,64 +26,8 @@ public final class LessLocation {
         /* -------------------------------end--------------------------------------- */
         
         /* ---设置delegate字段 => 实现地理位置代理的集中处理--- */
-        self.locationManagerDelegate.reflector = self.locationRequstCoordinator
+        self.locationManagerDelegate.reflector = self
         /* ----------------------end--------------------- */
-        
-    }
-    
-}
-
-// MARK: - LocationRequest
-extension LessLocation {
-    
-    public func requestLocations() async -> [CLLocation] {
-        await withCheckedContinuation { continuation in
-            requestLocations { locations in
-                continuation.resume(returning: locations)
-            }
-        }
-    }
-    
-    private func requestLocations(completion: @escaping LessLocationTaskCoordinator.LocationRequst) {
-        Task.detached { [weak self] in
-            guard let self = self else { return completion([]) }
-            await self.locationRequstCoordinator.push { [completion, self] locations in
-                self.locationManager.stopUpdatingLocation()
-                return completion(locations)
-            }
-            self.locationManager.startUpdatingLocation()
-        }
-    }
-
-}
-
-// MARK: - RegionMonitoring
-extension LessLocation {
-    
-    public enum RegionMonitoringEvent {
-        case enter(region: CLRegion)
-        case exits(region: CLRegion)
-    }
-    
-    public func monitoring(for inputRegion: CLRegion, with action: @escaping (_ event: RegionMonitoringEvent) -> Void) {
-        Task.detached {
-            await self.locationRequstCoordinator.pushRegionMonitoringTask { [action, inputRegion] regionEvent in
-                switch regionEvent {
-                case .enter(region: let region):
-                    guard inputRegion.identifier == region.identifier else { break }
-                    action(.enter(region: region))
-                case .exits(region: let region):
-                    guard inputRegion.identifier == region.identifier else { break }
-                    action(.exits(region: region))
-                }
-               
-            }
-            self.locationManager.startMonitoring(for: inputRegion)
-        }
-    }
-    
-    public func stopMonitoring(for inputRegion: CLRegion) {
-        self.locationManager.stopMonitoring(for: inputRegion)
     }
     
 }
@@ -94,6 +38,34 @@ extension LessLocation {
     public func isLocationFetchable(manager: CLLocationManager? = nil) -> Bool {
         let status = manager?.authorizationStatus ?? locationManager.authorizationStatus
         return status == .authorizedWhenInUse || status == .authorizedAlways
+    }
+    
+}
+
+// MARK: - LessLocationDelegate
+extension LessLocation: LessLocationDelegateReflector {
+ 
+    internal func manager() -> CLLocationManager {
+        locationManager
+    }
+    
+    internal func except(_ event: LessLocationDelegateEvent) {
+        switch event {
+        case .updateLocations(let locations):
+            locationRequstCoordinator.dispatch(locationsResult: .success(locations))
+        case .updateLocationsFailure(let error):
+            locationRequstCoordinator.dispatch(locationsResult: .failure(.operation(error: error)))
+        case .startMonitoring(let region):
+            debugPrint(region)
+        case .failureMonitoring(_, let error):
+            locationRequstCoordinator.dispatch(regionMonitoringResult: .failure(.operation(error: error)))
+        case .didExitMonitored(let region):
+            locationRequstCoordinator.dispatch(regionMonitoringResult: .success(.exits(region: region)))
+        case .didEnterMoitored(let region):
+            locationRequstCoordinator.dispatch(regionMonitoringResult: .success(.enter(region: region)))
+        case .didChangeLocationAuthsStatus(let status):
+            locationRequstCoordinator.dispatch(authrizationStatus: .success(status))
+        }
     }
     
 }
