@@ -20,11 +20,8 @@ actor LessLocationTaskCoordinator {
     typealias RegionMonitoringTask = (_ regionEvent: RegionMonitoringEvent) -> Void
     private var regionMonitoringTasks: [RegionMonitoringTask] = []
     
-    enum AuthrizationEvent {
-        case success(status: CLAuthorizationStatus)
-        case failure(error: Error)
-    }
-    typealias AuthrizationRequest = (_ status: AuthrizationEvent) -> Void
+    typealias AuthrizationEvent = LessLocation.AuthrizationEvent
+    typealias AuthrizationRequest = LessLocation.AuthrizationRequest
     private var authrizationRequest: AuthrizationRequest? = nil
     
 }

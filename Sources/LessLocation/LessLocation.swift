@@ -6,13 +6,13 @@ import CoreLocation
 public final class LessLocation {
     
     /// 地理位置管理器
-    private let locationManager: CLLocationManager
+    internal let locationManager: CLLocationManager
     
     /// 地理位置管理器代理
-    private let locationManagerDelegate = LessLocationDelegate()
+    internal let locationManagerDelegate = LessLocationDelegate()
     
     /// 消费者队列协调者
-    private let locationRequstCoordinator = LessLocationTaskCoordinator()
+    internal let locationRequstCoordinator = LessLocationTaskCoordinator()
     
     public required init(for locationManager: CLLocationManager? = nil, accuracy: LessLocationAccuracy, allowsBackgroundUpdates: Bool = false) {
         /* 断言当前的初始化操作是在主线程上进行的 */
@@ -88,44 +88,12 @@ extension LessLocation {
     
 }
 
-// MARK: - AuthrizationRequest
+// MARK: - 通用方法
 extension LessLocation {
     
-    public enum AuthrizationTarget {
-        case always
-        case whenInUse
-    }
-    
-    public func requestAuthrization(for target: AuthrizationTarget) async throws -> CLAuthorizationStatus {
-        let status: CLAuthorizationStatus = try await withCheckedThrowingContinuation { continuation in
-            requestAuthrization(for: target) { status in
-                switch status {
-                case .success(status: let status):
-                    continuation.resume(returning: status)
-                case .failure(error: let error):
-                    continuation.resume(throwing: error)
-                }
-            }
-        }
-        return status
-    }
-    
-    private func requestAuthrization(for target: AuthrizationTarget, completion: @escaping LessLocationTaskCoordinator.AuthrizationRequest) {
-        let semaphore = DispatchSemaphore(value: 1)
-        semaphore.wait()
-        Task.detached {[weak self, semaphore, completion] in
-            guard let self = self else { return completion(.failure(error: NSError(domain: "LessLocation miss reference", code: 404))) }
-            await self.locationRequstCoordinator.setAuthrizationRequest { [semaphore, completion] result in
-                completion(result)
-                semaphore.signal()
-            }
-            switch target {
-            case .always:
-               return self.locationManager.requestAlwaysAuthorization()
-            case .whenInUse:
-               return self.locationManager.requestWhenInUseAuthorization()
-            }
-        }
+    public func isLocationFetchable(manager: CLLocationManager? = nil) -> Bool {
+        let status = manager?.authorizationStatus ?? locationManager.authorizationStatus
+        return status == .authorizedWhenInUse || status == .authorizedAlways
     }
     
 }
