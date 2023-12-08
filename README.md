@@ -1,4 +1,7 @@
-# LessLocation ![Swift](https://img.shields.io/badge/swift-5.9-orange.svg) ![iOS](https://img.shields.io/badge/iOS-14.0%2B-blue.svg) ![macOS](https://img.shields.io/badge/macOS-12%2B-blue.svg)
+# LessLocation
+[![Swift Package Manager](https://img.shields.io/badge/Swift_Package_Manager-compatible-orange?style=flat)](https://img.shields.io/badge/Swift_Package_Manager-compatible-orange?style=flat)
+![Swift](https://img.shields.io/badge/swift-5.9-orange.svg) [![Platforms](https://img.shields.io/badge/platforms-iOS%2014.0%20|%20macOS%2012.0-orange?style=flat)](https://img.shields.io/badge/platforms-iOS%2014.0%20|%20macOS%2012.0-orange?style=flat)
+
 
 ## 概览
 `LessLocation` 是一个 Swift 包管理器（SPM）包，旨在简化与苹果的 CoreLocation 框架的交互。
@@ -17,20 +20,43 @@
 
 该包使用 Swift 5.9 编写，并支持：
 - iOS 14.0 及以上
-- macOS 12 及以上
+- macOS 12.0 及以上
 
 ## 使用示例
 - 一次性地理位置请求:
 ```swift
 let manager = LessLocation()
+// 使用async/await
 Task {
     do {
         // 更快速的请求
-        let locations: [CLLocation] = try await manager.requestLocations()
+        let result = try await manager.requestLocations()
+        switch result {
+            case .success(let locations):
+                 print(locations)
+             case .failure(let error):
+                 print(error)
+        }
         // 更精准的请求
-        let highQualityLocations: [CLLocation] = try await manager.requestLocations(isHighLevel: ture)
+        let highQualityResult = try await manager.requestLocations(isHighLevel: ture)
+         switch highQualityResult {
+            case .success(let locations):
+                 print(locations)
+             case .failure(let error):
+                 print(error)
+        }
     } catch {
         print(error)
+    }
+}
+
+// 使用回调
+manager.requestLocations { result in
+    switch result {
+        case .success(let locations):
+            print(locations)
+        case .failure(let error):
+            print(error)
     }
 }
 ```
@@ -38,8 +64,14 @@ Task {
 - 授权请求
 ```swift
 let manager = LessLocation()
+// 使用async/await
 Task {
     let status = await manager.requestAuthrization(for: .whenInUse)
+    let alwaysStatus = await manager.requestAuthrization(for: .always)
+}
+// 使用回调
+manager.requestAuthrization(for: .whenInUse) { status in
+    print(status)
 }
 ```
 
